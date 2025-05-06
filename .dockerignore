@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv_msmessages/
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Logs
+*.log
+
+# Local development
+*.sqlite3
+*.db
+
+# Documentation
+*.md
+!README.md 
