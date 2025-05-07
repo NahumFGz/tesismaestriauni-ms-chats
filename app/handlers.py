@@ -1,9 +1,38 @@
+"""
+Manejadores de Mensajes NATS
+
+Este módulo contiene los handlers que procesan los mensajes entrantes de NATS.
+Cada handler:
+
+1. Recibe mensajes de un topic específico
+2. Procesa la información
+3. Interactúa con la base de datos
+4. Envía una respuesta
+
+Handlers Implementados:
+
+1. handle_create:
+   - Topic: message.create
+   - Función: Crea un nuevo mensaje en la base de datos
+   - Payload esperado: {"data": {"content": "texto del mensaje"}}
+   - Respuesta: Mensaje creado con ID y timestamps
+
+2. handle_find_all:
+   - Topic: message.findAll
+   - Función: Obtiene todos los mensajes de la base de datos
+   - No requiere payload
+   - Respuesta: Lista de todos los mensajes
+
+Notas:
+- Manejo asíncrono de la base de datos
+- Gestión de errores incluida
+- Respuestas en formato JSON
+"""
+
 import json
-from datetime import datetime
 
 from nats.aio.msg import Msg
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import database, model
 

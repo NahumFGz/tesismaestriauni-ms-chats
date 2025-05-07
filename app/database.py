@@ -1,26 +1,36 @@
-import os
+"""
+Configuración de la Base de Datos Asíncrona
+
+Este módulo configura la conexión asíncrona a PostgreSQL usando SQLAlchemy.
+Proporciona:
+
+1. Configuración de la Conexión:
+   - Usa la configuración centralizada de config.py
+   - Motor asíncrono de SQLAlchemy
+
+2. Gestión de Sesiones:
+   - Fábrica de sesiones asíncronas
+   - Función get_db para inyección de dependencias
+   - Manejo automático de cierre de sesiones
+
+3. Modelo Base:
+   - Clase base para todos los modelos SQLAlchemy
+
+Notas:
+- Usa asyncpg como driver asíncrono
+- Implementa patrones de conexión seguros
+- Maneja el ciclo de vida de las sesiones
+"""
+
 from typing import AsyncGenerator
 
-from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from .config import settings
 
-load_dotenv()
-
-DB_NAME = os.getenv("DB_NAME", "ms_messaging")
-DB_USERNAME = os.getenv("DB_USERNAME", "nahumfg")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "nahumfg")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-
-SQLALCHEMY_DATABASE_URL = (
-    f"postgresql+asyncpg://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
-
-# Crear el motor asíncrono
-engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
+# Crear el motor asíncrono usando la URL de la configuración
+engine = create_async_engine(settings.DATABASE_URL, echo=True)
 
 # Crear la fábrica de sesiones asíncronas
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
