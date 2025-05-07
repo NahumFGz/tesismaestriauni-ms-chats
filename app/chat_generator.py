@@ -37,10 +37,22 @@ async def generate_chat_response(chat_uuid: str, message: str) -> dict:
 async def generate_chat_tokens(chat_uuid: str, message: str) -> AsyncGenerator[dict, Any]:
     response = message + " desde el chat_response"
     tokens = response.split()  # Simula tokens dividiendo por espacios
+    full_message = ""
 
     for token in tokens:
         await asyncio.sleep(0.1)  # Simula delay entre tokens
-        yield {"chat_uuid": chat_uuid, "token": token, "is_complete": False}
+        full_message += token + " "
+        yield {
+            "chat_uuid": chat_uuid,
+            "token": token,
+            "is_complete": False,
+            "full_message": full_message.strip(),
+        }
 
     # Señal de finalización del stream
-    yield {"chat_uuid": chat_uuid, "token": "", "is_complete": True}
+    yield {
+        "chat_uuid": chat_uuid,
+        "token": "",
+        "is_complete": True,
+        "full_message": full_message.strip(),
+    }

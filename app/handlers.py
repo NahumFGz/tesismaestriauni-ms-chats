@@ -147,6 +147,7 @@ async def handle_message_generate_streaming(msg: Msg):
                     "chat_uuid": chat_uuid,
                     "token": token_data["token"],
                     "is_complete": token_data["is_complete"],
+                    "full_message": token_data["full_message"],
                 }
                 await msg.respond(json.dumps(response).encode())
 
