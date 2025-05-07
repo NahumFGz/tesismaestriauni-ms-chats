@@ -10,6 +10,7 @@ import asyncio
 import json
 import uuid
 
+from nats.aio.client import Client as NATS
 from nats.aio.msg import Msg
 
 
@@ -30,43 +31,52 @@ async def handle_message_generate(msg: Msg):
     await msg.respond(json.dumps(response).encode())
 
 
-async def handle_message_generate_streaming(msg: Msg):
-    """Simula la generación de una respuesta palabra por palabra"""
+async def handle_message_generate_stream_start(nc: NATS, msg: Msg):
+    """
+    Genera tokens y los publica en el `stream_subject` que envía el gateway.
+    """
     payload = json.loads(msg.data.decode())
-    print(f"📨 [generate.streaming] Recibido: {payload}")
+    print(f"📨 [generate.streaming.start] Recibido: {payload}")
 
-    chat_uuid = payload["data"].get("chat_uuid", str(uuid.uuid4()))
-    content = payload["data"]["content"]
+    stream_subject = payload["stream_subject"]  # viene del gateway
+    print(f"🟢 start → {stream_subject}")
+
+    chat_uuid = payload.get("chat_uuid", str(uuid.uuid4()))
+    content = payload["content"]
+
     respuesta = content + " → tokens de respuesta demo"
     tokens = respuesta.split()
+    full_msg = ""
 
-    full_message = ""
-
-    for i, token in enumerate(tokens):
-        full_message += token + " "
-        await asyncio.sleep(0.2)  # Simula delay entre tokens
-
-        await msg.respond(
+    # Publicamos palabra por palabra
+    for token in tokens:
+        full_msg += token + " "
+        await asyncio.sleep(0.2)
+        print(f"📨 [generate.streaming] Publicando: {token}")
+        await nc.publish(
+            stream_subject,
             json.dumps(
                 {
                     "chat_uuid": chat_uuid,
                     "token": token,
                     "is_complete": False,
-                    "full_message": full_message.strip(),
+                    "full_message": full_msg.strip(),
                 }
-            ).encode()
+            ).encode(),
         )
+    print(f"🔴 end   → {stream_subject}")
 
-    # Señal de finalización
-    await msg.respond(
+    # Mensaje final
+    await nc.publish(
+        stream_subject,
         json.dumps(
             {
                 "chat_uuid": chat_uuid,
                 "token": "",
                 "is_complete": True,
-                "full_message": full_message.strip(),
+                "full_message": full_msg.strip(),
             }
-        ).encode()
+        ).encode(),
     )
 
 
