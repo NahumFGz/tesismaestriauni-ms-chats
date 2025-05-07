@@ -35,11 +35,12 @@ engine = create_async_engine(settings.DATABASE_URL, echo=True)
 # Crear la fábrica de sesiones asíncronas
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+# Crear el modelo base
 Base = declarative_base()
 
 
 # Función para obtener una sesión de base de datos
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         try:
             yield session

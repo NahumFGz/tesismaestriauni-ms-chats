@@ -27,9 +27,11 @@ import uuid
 
 from nats.aio.msg import Msg
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-from app import database, model
+from app import model
 from app.chat_generator import generate_chat_response
+from app.database import get_async_db
 
 
 async def handle_chat_message(msg: Msg):
@@ -44,8 +46,19 @@ async def handle_chat_message(msg: Msg):
             chat_uuid = str(uuid.uuid4())
 
         # Obtener la sesión de la base de datos
-        session = database.async_session()
-        try:
+        async for session in get_async_db():
+            # Buscar o crear el chat
+            chat_query = await session.execute(
+                select(model.Chat).where(model.Chat.chat_uuid == chat_uuid)
+            )
+            chat = chat_query.scalar_one_or_none()
+
+            if not chat:
+                chat = model.Chat(chat_uuid=chat_uuid)
+                session.add(chat)
+                await session.commit()
+                await session.refresh(chat)
+
             # Guardar mensaje del usuario
             user_message = model.Message(
                 content=content, chat_uuid=chat_uuid, sender_type=model.SenderType.USER
@@ -70,7 +83,14 @@ async def handle_chat_message(msg: Msg):
             response = {
                 "status": "ok",
                 "data": {
-                    "chat_uuid": chat_uuid,  # Incluir el chat_uuid en la respuesta
+                    "chat": {
+                        "id": chat.id,
+                        "chat_uuid": chat.chat_uuid,
+                        "title": chat.title,
+                        "user_id": chat.user_id,
+                        "created_at": chat.created_at.isoformat(),
+                        "updated_at": chat.updated_at.isoformat() if chat.updated_at else None,
+                    },
                     "user_message": {
                         "id": user_message.id,
                         "chat_uuid": user_message.chat_uuid,
@@ -88,8 +108,7 @@ async def handle_chat_message(msg: Msg):
                 },
             }
             await msg.respond(json.dumps(response).encode())
-        finally:
-            await session.close()
+            break  # Importante: romper el bucle después de usar la sesión
     except Exception as e:
         error_response = {"status": "error", "message": str(e)}
         await msg.respond(json.dumps(error_response).encode())
@@ -100,9 +119,10 @@ async def handle_find_all(msg: Msg):
         print("📨 [findAll] Solicitud recibida")
 
         # Obtener la sesión de la base de datos
-        session = database.async_session()
-        try:
-            result = await session.execute(select(model.Message))
+        async for session in get_async_db():
+            # Cargar mensajes con la relación chat usando selectinload
+            query = select(model.Message).options(selectinload(model.Message.chat))
+            result = await session.execute(query)
             messages = result.scalars().all()
 
             response = {
@@ -110,7 +130,16 @@ async def handle_find_all(msg: Msg):
                 "data": [
                     {
                         "id": msg.id,
-                        "chat_uuid": msg.chat_uuid,
+                        "chat": {
+                            "id": msg.chat.id,
+                            "chat_uuid": msg.chat.chat_uuid,
+                            "title": msg.chat.title,
+                            "user_id": msg.chat.user_id,
+                            "created_at": msg.chat.created_at.isoformat(),
+                            "updated_at": (
+                                msg.chat.updated_at.isoformat() if msg.chat.updated_at else None
+                            ),
+                        },
                         "sender_type": msg.sender_type.value,
                         "content": msg.content,
                         "timestamp": msg.timestamp.isoformat(),
@@ -119,8 +148,7 @@ async def handle_find_all(msg: Msg):
                 ],
             }
             await msg.respond(json.dumps(response).encode())
-        finally:
-            await session.close()
+            break  # Importante: romper el bucle después de usar la sesión
     except Exception as e:
         error_response = {"status": "error", "message": str(e)}
         await msg.respond(json.dumps(error_response).encode())
