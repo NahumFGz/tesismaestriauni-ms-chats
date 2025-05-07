@@ -1,4 +1,5 @@
 import os
+from typing import AsyncGenerator
 
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -18,18 +19,18 @@ SQLALCHEMY_DATABASE_URL = (
     f"postgresql+asyncpg://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=True,
-)
+# Crear el motor asíncrono
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+# Crear la fábrica de sesiones asíncronas
+async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 Base = declarative_base()
 
 
-async def get_db():
-    async with AsyncSessionLocal() as session:
+# Función para obtener una sesión de base de datos
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session() as session:
         try:
             yield session
         finally:
