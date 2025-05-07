@@ -25,7 +25,7 @@ from alembic import context
 # Configuraciones y modelos de la aplicación
 from app.config import settings
 from app.database import Base
-from app.model import (
+from app.models import (
     Message,  # Importación necesaria para que Alembic detecte el modelo
 )
 
