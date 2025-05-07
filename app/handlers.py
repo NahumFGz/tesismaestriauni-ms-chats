@@ -47,7 +47,9 @@ async def handle_chat_message(msg: Msg):
         session = database.async_session()
         try:
             # Guardar mensaje del usuario
-            user_message = model.Message(content=content, chat_uuid=chat_uuid)
+            user_message = model.Message(
+                content=content, chat_uuid=chat_uuid, sender_type=model.SenderType.USER
+            )
             session.add(user_message)
             await session.commit()
             await session.refresh(user_message)
@@ -56,7 +58,11 @@ async def handle_chat_message(msg: Msg):
             chat_response = await generate_chat_response(chat_uuid, content)
 
             # Guardar respuesta del chat
-            bot_message = model.Message(content=chat_response["message"], chat_uuid=chat_uuid)
+            bot_message = model.Message(
+                content=chat_response["message"],
+                chat_uuid=chat_uuid,
+                sender_type=model.SenderType.SYSTEM,
+            )
             session.add(bot_message)
             await session.commit()
             await session.refresh(bot_message)
@@ -68,12 +74,14 @@ async def handle_chat_message(msg: Msg):
                     "user_message": {
                         "id": user_message.id,
                         "chat_uuid": user_message.chat_uuid,
+                        "sender_type": user_message.sender_type.value,
                         "content": user_message.content,
                         "timestamp": user_message.timestamp.isoformat(),
                     },
                     "bot_message": {
                         "id": bot_message.id,
                         "chat_uuid": bot_message.chat_uuid,
+                        "sender_type": bot_message.sender_type.value,
                         "content": bot_message.content,
                         "timestamp": bot_message.timestamp.isoformat(),
                     },
@@ -103,6 +111,7 @@ async def handle_find_all(msg: Msg):
                     {
                         "id": msg.id,
                         "chat_uuid": msg.chat_uuid,
+                        "sender_type": msg.sender_type.value,
                         "content": msg.content,
                         "timestamp": msg.timestamp.isoformat(),
                     }
