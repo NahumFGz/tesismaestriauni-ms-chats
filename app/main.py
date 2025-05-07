@@ -28,26 +28,32 @@ Dependencias:
 - SQLAlchemy: Para la interacción con la base de datos
 """
 
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from nats.aio.client import Client as NATS
 
 from app.nats_subscriptions import register_nats_subscriptions
 
 nats = NATS()
-app = FastAPI()
 
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     await nats.connect("nats://localhost:4222")
     print("✅ Conectado a NATS")
     await register_nats_subscriptions(nats)
 
+    yield  # <- Aquí la aplicación está corriendo
 
-@app.on_event("shutdown")
-async def shutdown():
+    # Shutdown
     print("🚪 Cerrando conexión NATS")
     await nats.drain()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health")
