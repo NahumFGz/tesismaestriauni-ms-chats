@@ -1,20 +1,63 @@
-import os
+"""
+Módulo de gestión de configuración de la aplicación.
 
-from dotenv import load_dotenv
+Este módulo proporciona un sistema centralizado de configuración utilizando Pydantic settings.
+Maneja las variables de entorno para conexiones a base de datos y servidores NATS,
+proporcionando configuración con validación de tipos y mensajes de error útiles.
 
-load_dotenv()
+El módulo utiliza BaseSettings de Pydantic para la carga automática de variables
+de entorno y validación, con soporte para configuración mediante archivo .env.
+"""
+
+import sys
+from functools import lru_cache
+from typing import List
+
+from pydantic import Field, ValidationError
+from pydantic_settings import BaseSettings
 
 
-class Settings:
-    DB_NAME: str = os.getenv("DB_NAME", "ms_messaging")
-    DB_USERNAME: str = os.getenv("DB_USERNAME", "nahumfg")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "nahumfg")
-    DB_HOST: str = os.getenv("DB_HOST", "localhost")
-    DB_PORT: str = os.getenv("DB_PORT", "5432")
+class Settings(BaseSettings):
+    DB_NAME: str = Field(..., env="DB_NAME")
+    DB_USERNAME: str = Field(..., env="DB_USERNAME")
+    DB_PASSWORD: str = Field(..., env="DB_PASSWORD")
+    DB_HOST: str = Field(..., env="DB_HOST")
+    DB_PORT: int = Field(..., env="DB_PORT")
+
+    NATS_SERVERS: str = Field(..., env="NATS_SERVERS")
 
     @property
-    def DATABASE_URL(self) -> str:
-        return f"postgresql+asyncpg://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+    def database_url(self) -> str:
+        """Devuelve la URL async de conexión a PostgreSQL."""
+        return (
+            f"postgresql+asyncpg://{self.DB_USERNAME}:{self.DB_PASSWORD}"
+            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
+
+    @property
+    def nats_servers_list(self) -> List[str]:
+        """
+        Devuelve la lista de servidores NATS como lista de strings.
+        Se obtiene dividiendo NATS_SERVERS.
+        """
+        return [s.strip() for s in self.NATS_SERVERS.split(",") if s.strip()]
+
+    class Config:
+        """Configuración de Pydantic."""
+
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    """
+    Instancia única de Settings.
+    Si falta una variable, imprime error y termina el proceso.
+    """
+    try:
+        return Settings()
+    except ValidationError as e:
+        print("❌ Invalid environment variables:", e, file=sys.stderr)
+        sys.exit(1)

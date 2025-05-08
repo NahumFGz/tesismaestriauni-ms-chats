@@ -34,16 +34,18 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from nats.aio.client import Client as NATS
 
+from app.config import get_settings
 from app.nats_subscriptions import register_nats_subscriptions
 
+settings = get_settings()
 nats = NATS()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await nats.connect("nats://localhost:4222")
-    print("✅ Conectado a NATS")
+    await nats.connect(settings.nats_servers_list)
+    print(f"✅ Conectado a NATS: {settings.nats_servers_list}")
     await register_nats_subscriptions(nats)
 
     yield  # <- Aquí la aplicación está corriendo
