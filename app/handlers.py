@@ -44,6 +44,7 @@ from sqlalchemy import desc, select
 from app import models
 from app.chat_generator import generate_chat_response, generate_chat_tokens
 from app.database import get_async_db
+from app.llm_resumer import generate_chat_title
 
 # --------------------------------------------------------------------------- #
 # Helpers (DRY)                                                               #
@@ -95,11 +96,32 @@ async def _reply_error(msg: Msg, exc: Exception) -> None:
     await msg.respond(json.dumps({"status": "error", "message": str(exc)}).encode())
 
 
+async def _generate_and_save_title_if_needed(
+    session, chat: models.Chat, content: str, is_new_chat: bool
+) -> str:
+    """
+    Genera y guarda un título para el chat si es necesario.
+    Si falla la generación, usa "Chat #[ID]" como título.
+    Devuelve el título generado o None.
+    """
+    generated_title = None
+    if is_new_chat and not chat.title:
+        try:
+            generated_title = await generate_chat_title(content)
+        except Exception:  # pragma: no cover
+            # Si falla la generación del título, usamos un título por defecto
+            generated_title = f"Chat #{chat.id}"
+
+        chat.title = generated_title
+        await session.commit()
+    return generated_title
+
+
 # --------------------------------------------------------------------------- #
 # 1. Generación de mensaje completo                                           #
 # --------------------------------------------------------------------------- #
 async def handle_message_generate(msg: Msg) -> None:
-    """Procesa `message.generate` y devuelve la respuesta completa en el reply."""
+    """Procesa `message.generate`, genera título para nuevos chats y devuelve la respuesta completa en el reply."""
     try:
         payload = json.loads(msg.data.decode())
         data = payload["data"]
@@ -108,16 +130,29 @@ async def handle_message_generate(msg: Msg) -> None:
         chat_uuid: str = data.get("chat_uuid") or str(uuid.uuid4())
         user_id = 1  # TODO: extraer del JWT
 
+        is_new_chat = (
+            "chat_uuid" not in data or data["chat_uuid"] is None or data["chat_uuid"] == ""
+        )
+
         async for session in get_async_db():
             chat = await _get_or_create_chat(session, chat_uuid, user_id)
             await _save_user_message(session, chat_uuid, content)
 
+            # Si es un nuevo chat, generamos título
+            generated_title = await _generate_and_save_title_if_needed(
+                session, chat, content, is_new_chat
+            )
+
             chat_resp = await generate_chat_response(chat_uuid, content)
             await _save_bot_message(session, chat, chat_resp["message"])
 
-            await msg.respond(
-                json.dumps({"chat_uuid": chat_uuid, "content": chat_resp["message"]}).encode()
-            )
+            # Incluimos el título en la respuesta si se generó uno nuevo
+            response_data = {"chat_uuid": chat_uuid, "content": chat_resp["message"]}
+
+            if generated_title:
+                response_data["title"] = generated_title
+
+            await msg.respond(json.dumps(response_data).encode())
             break
     except Exception as exc:  # pragma: no cover
         await _reply_error(msg, exc)
@@ -141,11 +176,20 @@ async def handle_message_generate_stream_start(nc: NATS, msg: Msg) -> None:
         content: str = payload["content"]
         user_id = 1  # TODO: extraer del JWT
 
+        is_new_chat = (
+            "chat_uuid" not in payload or payload["chat_uuid"] is None or payload["chat_uuid"] == ""
+        )
+        generated_title = None
         full_message = ""
 
         async for session in get_async_db():
             chat = await _get_or_create_chat(session, chat_uuid, user_id)
             await _save_user_message(session, chat_uuid, content)
+
+            # Si es un nuevo chat, generamos título
+            generated_title = await _generate_and_save_title_if_needed(
+                session, chat, content, is_new_chat
+            )
 
             async for token_data in generate_chat_tokens(chat_uuid, content):
                 token: str = token_data["token"]
@@ -154,16 +198,20 @@ async def handle_message_generate_stream_start(nc: NATS, msg: Msg) -> None:
                 if token:
                     full_message += token + " "
 
+                response_data = {
+                    "chat_uuid": chat_uuid,
+                    "token": token,
+                    "is_complete": is_complete,
+                    "full_message": full_message.strip(),
+                }
+
+                # Solo incluimos el título en el último mensaje cuando is_complete=True
+                if is_complete and generated_title:
+                    response_data["title"] = generated_title
+
                 await nc.publish(
                     stream_subject,
-                    json.dumps(
-                        {
-                            "chat_uuid": chat_uuid,
-                            "token": token,
-                            "is_complete": is_complete,
-                            "full_message": full_message.strip(),
-                        }
-                    ).encode(),
+                    json.dumps(response_data).encode(),
                 )
 
                 if is_complete:
@@ -203,6 +251,8 @@ async def handle_chats_by_user(msg: Msg) -> None:
 
             response = [
                 {
+                    "id": c.id,
+                    "title": c.title,
                     "chat_uuid": c.chat_uuid,
                     "updated_at": (
                         c.updated_at.isoformat() if c.updated_at else c.created_at.isoformat()
