@@ -1,18 +1,35 @@
 """
-Simulación de generación de respuestas de chat.
-
-Este módulo contiene funciones para interactuar con el servicio de chat a través de una API HTTP.
+Este módulo contiene funciones para interactuar directamente con el procesador MCP.
+TODO: Implementar el streaming de tokens, pero será con otro procesador MCP.
 """
 
 import asyncio
 from typing import Any, AsyncGenerator
 
-import aiohttp
+# Importamos el procesador MCP directamente
+from app.llm import MCPQueryProcessor
+
+# Instancia global del procesador
+_processor = None
+
+
+async def get_processor() -> MCPQueryProcessor:
+    """
+    Obtiene o inicializa el procesador MCP.
+
+    Returns:
+        MCPQueryProcessor: Instancia del procesador MCP
+    """
+    global _processor
+    if _processor is None:
+        _processor = MCPQueryProcessor()
+        await _processor.start()
+    return _processor
 
 
 async def generate_chat_response(chat_uuid: str, message: str) -> dict:
     """
-    Genera una respuesta de chat haciendo una llamada a la API local.
+    Genera una respuesta de chat usando directamente el procesador MCP.
 
     Args:
         chat_uuid: El ID del hilo de chat
@@ -21,17 +38,13 @@ async def generate_chat_response(chat_uuid: str, message: str) -> dict:
     Returns:
         dict: Respuesta del servicio de chat
     """
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            "http://127.0.0.1:8001/query", json={"query": message, "thread_id": chat_uuid}
-        ) as response:
-            result = await response.json()
-            return {
-                "chat_uuid": chat_uuid,
-                "message": result.get("result", {}).get(
-                    "response", "Lo siento, no pude procesar tu mensaje."
-                ),
-            }
+    processor = await get_processor()
+    result = await processor.run(message, chat_uuid)
+
+    return {
+        "chat_uuid": chat_uuid,
+        "message": result.get("response", "Lo siento, no pude procesar tu mensaje."),
+    }
 
 
 async def generate_chat_tokens(chat_uuid: str, message: str) -> AsyncGenerator[dict, Any]:
