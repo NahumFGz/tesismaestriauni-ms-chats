@@ -26,11 +26,22 @@ class Settings(BaseSettings):
 
     NATS_SERVERS: str = Field(..., env="NATS_SERVERS")
 
+    OPENAI_API_KEY: str = Field(..., env="OPENAI_API_KEY")
+    TAVILY_API_KEY: str = Field(..., env="TAVILY_API_KEY")
+
     @property
     def database_url(self) -> str:
         """Devuelve la URL async de conexión a PostgreSQL."""
         return (
             f"postgresql+asyncpg://{self.DB_USERNAME}:{self.DB_PASSWORD}"
+            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
+
+    @property
+    def database_memory_url(self) -> str:
+        """Devuelve la URL async de conexión a PostgreSQL para la memoria."""
+        return (
+            f"postgresql://{self.DB_USERNAME}:{self.DB_PASSWORD}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
