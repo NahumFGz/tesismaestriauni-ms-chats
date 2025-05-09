@@ -1,37 +1,37 @@
 """
 Simulación de generación de respuestas de chat.
 
-Este módulo contiene dos funciones asíncronas que simulan el comportamiento de un sistema de generación de respuestas tipo chatbot:
-
-1. `generate_chat_response`: simula la generación de una respuesta completa en un solo paso.
-2. `generate_chat_tokens`: simula una respuesta generada token por token (palabra por palabra), útil para pruebas de emisión en tiempo real (streaming).
-
-Estas funciones son útiles para pruebas de integración con WebSockets, NATS, SSE u otras arquitecturas reactivas, antes de integrar un modelo de lenguaje real.
+Este módulo contiene funciones para interactuar con el servicio de chat a través de una API HTTP.
 """
 
 import asyncio
 from typing import Any, AsyncGenerator
 
+import aiohttp
+
 
 async def generate_chat_response(chat_uuid: str, message: str) -> dict:
-    # Lista de posibles respuestas
-    responses = [
-        "¡Hola! Gracias por tu mensaje. Me parece muy interesante lo que comentas. ¿Podrías darme más detalles al respecto?",
-        "Entiendo tu punto de vista. Basándome en la información disponible, te sugiero considerar las siguientes alternativas...",
-        "Es un tema fascinante. Desde mi perspectiva, hay varios aspectos importantes que podríamos analizar con más profundidad.",
-        "Gracias por compartir eso conmigo. Me gustaría explorar más este tema contigo y entender mejor tu perspectiva.",
-        "Interesante planteamiento. Permíteme ofrecerte una perspectiva diferente que podría ser útil para esta situación.",
-    ]
+    """
+    Genera una respuesta de chat haciendo una llamada a la API local.
 
-    # Simula tiempo de procesamiento
-    await asyncio.sleep(0.1)
+    Args:
+        chat_uuid: El ID del hilo de chat
+        message: El mensaje del usuario
 
-    # Selecciona una respuesta aleatoria
-    import random
-
-    response = random.choice(responses)
-
-    return {"chat_uuid": chat_uuid, "message": response}
+    Returns:
+        dict: Respuesta del servicio de chat
+    """
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "http://127.0.0.1:8001/query", json={"query": message, "thread_id": chat_uuid}
+        ) as response:
+            result = await response.json()
+            return {
+                "chat_uuid": chat_uuid,
+                "message": result.get("result", {}).get(
+                    "response", "Lo siento, no pude procesar tu mensaje."
+                ),
+            }
 
 
 async def generate_chat_tokens(chat_uuid: str, message: str) -> AsyncGenerator[dict, Any]:

@@ -40,10 +40,7 @@ class Settings(BaseSettings):
     @property
     def database_memory_url(self) -> str:
         """Devuelve la URL async de conexión a PostgreSQL para la memoria."""
-        return (
-            f"postgresql://{self.DB_USERNAME}:{self.DB_PASSWORD}"
-            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-        )
+        return f"postgresql://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?sslmode=disable"
 
     @property
     def nats_servers_list(self) -> List[str]:
