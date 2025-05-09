@@ -26,6 +26,10 @@ class Settings(BaseSettings):
 
     NATS_SERVERS: str = Field(..., env="NATS_SERVERS")
 
+    MCP_ASISTANCE_URL: str = Field(..., env="MCP_ASISTANCE_URL")
+    MCP_CONTRACTING_URL: str = Field(..., env="MCP_CONTRACTING_URL")
+    MCP_VOTING_URL: str = Field(..., env="MCP_VOTING_URL")
+
     OPENAI_API_KEY: str = Field(..., env="OPENAI_API_KEY")
     TAVILY_API_KEY: str = Field(..., env="TAVILY_API_KEY")
 

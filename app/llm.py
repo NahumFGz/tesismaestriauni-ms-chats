@@ -44,9 +44,9 @@ class MCPQueryProcessor:
     """
 
     SERVERS = {
-        "assistance": {"url": "http://localhost:9001/sse", "transport": "sse"},
-        "contracting": {"url": "http://localhost:9002/sse", "transport": "sse"},
-        "voting": {"url": "http://localhost:9003/sse", "transport": "sse"},
+        "assistance": {"url": settings.MCP_ASISTANCE_URL, "transport": "sse"},
+        "contracting": {"url": settings.MCP_CONTRACTING_URL, "transport": "sse"},
+        "voting": {"url": settings.MCP_VOTING_URL, "transport": "sse"},
     }
 
     def __init__(self):
