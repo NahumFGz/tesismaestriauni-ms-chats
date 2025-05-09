@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from alembic import context
 
 # Configuraciones y modelos de la aplicación
-from app.config import settings
+from app.config import get_settings
 from app.database import Base
 from app.models import (
     Message,  # Importación necesaria para que Alembic detecte el modelo
@@ -39,6 +39,9 @@ if config.config_file_name is not None:
 # Metadata de los modelos de SQLAlchemy que Alembic usará para autogenerar migraciones
 target_metadata = Base.metadata
 
+# Instancia de configuración
+settings = get_settings()
+
 
 # Función que aplica las migraciones usando una conexión activa
 def do_run_migrations(connection):
@@ -52,7 +55,7 @@ def do_run_migrations(connection):
 async def run_async_migrations() -> None:
     # Recupera configuración desde el archivo alembic.ini y actualiza la URL de la BD
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.DATABASE_URL
+    configuration["sqlalchemy.url"] = settings.database_url
 
     # Crea un motor asíncrono para conectarse a la base de datos
     connectable = AsyncEngine(

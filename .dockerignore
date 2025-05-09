@@ -1,3 +1,6 @@
+# Ignorar postgres
+postgres/
+
 # Python
 __pycache__/
 *.py[cod]

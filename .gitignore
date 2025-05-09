@@ -1,6 +1,8 @@
 **/venv_*
 **/.env
 
+/postgres
+
 # Python
 __pycache__
 *.pyc

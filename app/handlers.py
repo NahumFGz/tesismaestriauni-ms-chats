@@ -181,14 +181,15 @@ async def handle_message_generate_stream_start(nc: NATS, msg: Msg) -> None:
 # 3. Consulta de chats por usuario                                            #
 # --------------------------------------------------------------------------- #
 async def handle_chats_by_user(msg: Msg) -> None:
-    """Procesa `chats.by.user` y devuelve los chats más recientes del usuario."""
+    """Procesa `chats.by.user` y devuelve los chats más recientes del usuario (paginado por page y take)."""
     try:
         payload = json.loads(msg.data.decode())
         data = payload["data"]
 
         user_id = data.get("user_id", 1)  # TODO: JWT
         take = data.get("take", 20)
-        skip = data.get("skip", 0)
+        page = max(data.get("page", 1), 1)
+        skip = (page - 1) * take
 
         async for session in get_async_db():
             query = (

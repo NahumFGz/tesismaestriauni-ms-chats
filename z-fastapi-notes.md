@@ -52,3 +52,21 @@
   alembic downgrade -1 -> Run our downgrade migration to our database
   alembic revision --autogenerate -m <message>
   alembic upgrade head
+
+# Acceder al docker
+
+- Ver contenedores en ejecución
+  docker ps
+
+- Acceder al contenedor de la aplicación
+  docker exec -it tesismaestriauni-launcher-ms-messages-1 /bin/bash
+  docker exec -it <image_name> /bin/bash
+  docker exec -it <image_id> /bin/bash
+
+- Salir del contenedor
+  exit
+
+- ⚠️ Importante
+  Si existe un volumen creado para una base de datos PostgreSQL y se define POSTGRES_DB en el docker-compose, la base de datos NO se creará al iniciar la imagen
+
+  Por eso para probar la creación con el nombre de una tabla eliinar el /postgres
