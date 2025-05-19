@@ -44,8 +44,8 @@ class MCPQueryProcessor:
     """
 
     SERVERS = {
-        "assistance": {"url": settings.MCP_ASISTANCE_URL, "transport": "sse"},
-        "contracting": {"url": settings.MCP_CONTRACTING_URL, "transport": "sse"},
+        "attendance": {"url": settings.MCP_ATTENDANCE_URL, "transport": "sse"},
+        "budget": {"url": settings.MCP_BUDGET_URL, "transport": "sse"},
         "voting": {"url": settings.MCP_VOTING_URL, "transport": "sse"},
     }
 
