@@ -34,8 +34,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from nats.aio.client import Client as NATS
 
-from app.chat_generator import _processor  # Importamos la referencia al procesador
 from app.config import get_settings
+from app.llm import shutdown_chat_processor
 from app.nats_subscriptions import register_nats_subscriptions
 
 settings = get_settings()
@@ -56,9 +56,8 @@ async def lifespan(app: FastAPI):
     await nats.drain()
 
     # Cerrar el procesador MCP si fue inicializado
-    if _processor is not None:
-        print("🚪 Cerrando procesador MCP")
-        await _processor.stop()
+    print("🚪 Cerrando procesador de chat MCP")
+    await shutdown_chat_processor()
 
 
 app = FastAPI(lifespan=lifespan)

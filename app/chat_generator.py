@@ -1,35 +1,18 @@
 """
-Este módulo contiene funciones para interactuar directamente con el procesador MCP.
+Este módulo contiene funciones para interactuar con el procesador de chat MCP.
 TODO: Implementar el streaming de tokens, pero será con otro procesador MCP.
 """
 
 import asyncio
 from typing import Any, AsyncGenerator
 
-# Importamos el procesador MCP directamente
-from app.llm import MCPQueryProcessor
-
-# Instancia global del procesador
-_processor = None
-
-
-async def get_processor() -> MCPQueryProcessor:
-    """
-    Obtiene o inicializa el procesador MCP.
-
-    Returns:
-        MCPQueryProcessor: Instancia del procesador MCP
-    """
-    global _processor
-    if _processor is None:
-        _processor = MCPQueryProcessor()
-        await _processor.start()
-    return _processor
+# Importamos las funciones simplificadas del módulo LLM
+from app.llm import process_chat_query
 
 
 async def generate_chat_response(chat_uuid: str, message: str) -> dict:
     """
-    Genera una respuesta de chat usando directamente el procesador MCP.
+    Genera una respuesta de chat usando el procesador MCP.
 
     Args:
         chat_uuid: El ID del hilo de chat
@@ -38,8 +21,7 @@ async def generate_chat_response(chat_uuid: str, message: str) -> dict:
     Returns:
         dict: Respuesta del servicio de chat
     """
-    processor = await get_processor()
-    result = await processor.run(message, chat_uuid)
+    result = await process_chat_query(message, chat_uuid)
 
     return {
         "chat_uuid": chat_uuid,
@@ -48,6 +30,18 @@ async def generate_chat_response(chat_uuid: str, message: str) -> dict:
 
 
 async def generate_chat_tokens(chat_uuid: str, message: str) -> AsyncGenerator[dict, Any]:
+    """
+    Genera tokens de chat de forma simulada (streaming).
+    TODO: Implementar streaming real con el procesador MCP.
+
+    Args:
+        chat_uuid: El ID del hilo de chat
+        message: El mensaje del usuario
+
+    Yields:
+        dict: Información de cada token y el mensaje completo
+    """
+    # Por ahora, simulamos el streaming dividiendo la respuesta
     response = message + " desde el chat_response"
     tokens = response.split()  # Simula tokens dividiendo por espacios
     full_message = ""

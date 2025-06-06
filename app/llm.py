@@ -1,9 +1,7 @@
-# main.py
-from contextlib import asynccontextmanager
-from typing import Annotated, Any, Dict, Optional
+# llm.py
+from typing import Annotated, Optional
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, HTTPException, Query
 from langchain.chat_models import init_chat_model
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -13,7 +11,6 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from psycopg_pool import AsyncConnectionPool
-from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from app.config import get_settings
@@ -206,97 +203,94 @@ class MCPQueryProcessor:
         graph_builder.add_edge("tools", "chatbot")
         graph_builder.add_edge("fallback", END)
 
-        # Compilar con memoria
+        # Compilar el grafo
         self._graph = graph_builder.compile(checkpointer=self._memory_saver)
 
     async def stop(self) -> None:
-        """Cierra la conexión limpia‑mente."""
+        """Cierra todas las conexiones."""
         if self._client:
             await self._client.__aexit__(None, None, None)
 
     async def run(self, query: str, thread_id: str = None):
         """
-        Ejecuta una consulta con el grafo y mantiene la memoria en PostgreSQL.
+        Ejecuta una consulta en el grafo con memoria persistente.
 
         Args:
-            query: Texto de la consulta del usuario
-            thread_id: Identificador de la conversación para mantener el contexto
-                    (si es None, se genera uno aleatorio)
+            query: La consulta del usuario
+            thread_id: ID del hilo para la memoria. Si es None, se genera uno nuevo.
+
+        Returns:
+            Un diccionario con la respuesta y metadatos.
         """
         if not self._graph:
-            raise RuntimeError("MCPQueryProcessor no ha sido inicializado.")
+            raise RuntimeError("Processor no inicializado. Llama a start() primero.")
 
-        # Si no hay thread_id, generar uno nuevo
-        if not thread_id:
+        if thread_id is None:
             thread_id = str(uuid4())
 
-        # Preparar entrada y configuración
+        # Configuración para la memoria
         config = {"configurable": {"thread_id": thread_id}}
-        human_message = HumanMessage(content=query)
-        entrada = {"messages": [human_message]}
 
-        # Ejecutar el grafo con memoria
-        resultado = await self._graph.ainvoke(entrada, config=config)
+        # Preparar el estado inicial
+        input_state = {"messages": [HumanMessage(content=query)]}
 
-        # Devolver el resultado y el thread_id
+        # Ejecutar el grafo
+        result = await self._graph.ainvoke(input_state, config)
+
+        # Extraer la respuesta del último mensaje del asistente
+        response_message = ""
+        for msg in reversed(result["messages"]):
+            if isinstance(msg, AIMessage):
+                response_message = msg.content
+                break
+
         return {
+            "response": response_message,
             "thread_id": thread_id,
-            "response": (
-                resultado["messages"][-1].content
-                if "messages" in resultado
-                else "No se pudo generar una respuesta."
-            ),
+            "topic_decision": result.get("topic_decision", "unknown"),
         }
 
 
-# ---------- FastAPI --------------------------------------------------------- #
+# ---------- Instancia global y funciones de utilidad -------------------- #
+
+# Instancia global del procesador (patrón singleton)
+_processor: Optional[MCPQueryProcessor] = None
 
 
-class QueryRequest(BaseModel):
-    query: str
-    thread_id: Optional[str] = None
-    options: Optional[Dict[str, Any]] = None  # por si quieres filtros futuros
-
-
-class QueryResponse(BaseModel):
-    result: Dict[str, Any]
-    status: str = "success"
-
-
-# Lifespan: crea y destruye el procesador automáticamente
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    processor = MCPQueryProcessor()
-    await processor.start()
-    app.state.processor = processor
-    print("✅ Procesador MCP con memoria PostgreSQL listo 🚀")
-    try:
-        yield
-    finally:
-        await processor.stop()
-        print("👋 Procesador MCP detenido")
-
-
-app = FastAPI(
-    title="API de Consultas MCP con Memoria PostgreSQL",
-    description="Procesa consultas con MultiServerMCPClient, LangGraph y memoria persistente",
-    lifespan=lifespan,
-)
-
-
-# Dependencia sencilla: sólo lee de app.state
-def get_processor() -> MCPQueryProcessor:
-    return app.state.processor  # type: ignore[attr-defined]
-
-
-@app.post("/query", response_model=QueryResponse)
-async def process_query(req: QueryRequest, proc: MCPQueryProcessor = Depends(get_processor)):
+async def get_chat_processor() -> MCPQueryProcessor:
     """
-    Procesa una consulta y mantiene el contexto de la conversación usando
-    el thread_id proporcionado (o generando uno nuevo).
+    Obtiene o inicializa el procesador de chat MCP.
+
+    Returns:
+        MCPQueryProcessor: Instancia del procesador MCP
     """
-    try:
-        result = await proc.run(req.query, req.thread_id)
-        return QueryResponse(result=result)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al procesar consulta: {e}")
+    global _processor
+    if _processor is None:
+        _processor = MCPQueryProcessor()
+        await _processor.start()
+    return _processor
+
+
+async def process_chat_query(query: str, thread_id: str = None) -> dict:
+    """
+    Función de alto nivel para procesar consultas de chat.
+
+    Args:
+        query: La consulta del usuario
+        thread_id: ID del hilo para mantener contexto entre mensajes
+
+    Returns:
+        dict: Respuesta del chat con metadata
+    """
+    processor = await get_chat_processor()
+    return await processor.run(query, thread_id)
+
+
+async def shutdown_chat_processor():
+    """
+    Cierra el procesador de chat y libera recursos.
+    """
+    global _processor
+    if _processor is not None:
+        await _processor.stop()
+        _processor = None
