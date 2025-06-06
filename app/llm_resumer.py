@@ -7,7 +7,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
 
 # Configuración del modelo para resumir/generar títulos
-llm_title_model = init_chat_model("openai:gpt-4o-mini", temperature=0.0)
+llm_title_model = init_chat_model("openai:gpt-4o-mini", temperature=0.7)
 
 
 async def generate_chat_title(user_message: str) -> str:
