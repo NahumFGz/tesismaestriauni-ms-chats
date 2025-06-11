@@ -180,7 +180,6 @@ async def handle_message_generate_stream_start(nc: NATS, msg: Msg) -> None:
             "chat_uuid" not in payload or payload["chat_uuid"] is None or payload["chat_uuid"] == ""
         )
         generated_title = None
-        full_message = ""
 
         async for session in get_async_db():
             chat = await _get_or_create_chat(session, chat_uuid, user_id)
@@ -194,9 +193,7 @@ async def handle_message_generate_stream_start(nc: NATS, msg: Msg) -> None:
             async for token_data in generate_chat_tokens(chat_uuid, content):
                 token: str = token_data["token"]
                 is_complete: bool = token_data["is_complete"]
-
-                if token:
-                    full_message += token
+                full_message: str = token_data["full_message"]
 
                 response_data = {
                     "chat_uuid": chat_uuid,

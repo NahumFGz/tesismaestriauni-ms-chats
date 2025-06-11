@@ -119,7 +119,7 @@ async def classifier_node(state: ChatState) -> ChatState:
 
     # Obtener contexto histórico
     history_context = format_history_context(
-        msgs_for_context, max_chars=150, exclude_last=True, last_n=3
+        msgs_for_context, max_chars=150, exclude_last=True, last_n=4
     )
 
     # Obtener la última pregunta
