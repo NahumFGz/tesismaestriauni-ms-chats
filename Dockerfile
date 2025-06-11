@@ -1,5 +1,5 @@
 # Etapa de construcción
-FROM python:3.10-slim as builder
+FROM python:3.11-slim as builder
 
 # Set working directory
 WORKDIR /app
@@ -19,7 +19,7 @@ COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 # Etapa final
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -44,5 +44,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Command (overridden by docker-compose if specified)
+# Optional default command
 # CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

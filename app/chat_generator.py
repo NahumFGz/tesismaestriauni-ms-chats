@@ -1,13 +1,12 @@
 """
 Este módulo contiene funciones para interactuar con el procesador de chat MCP.
-TODO: Implementar el streaming de tokens, pero será con otro procesador MCP.
 """
 
 import asyncio
 from typing import Any, AsyncGenerator
 
-# Importamos las funciones simplificadas del módulo LLM
-from app.llm import process_chat_query
+# Importamos las funciones del módulo agent LLM
+from app.agent.llm import run, run_stream
 
 
 async def generate_chat_response(chat_uuid: str, message: str) -> dict:
@@ -21,7 +20,7 @@ async def generate_chat_response(chat_uuid: str, message: str) -> dict:
     Returns:
         dict: Respuesta del servicio de chat
     """
-    result = await process_chat_query(message, chat_uuid)
+    result = await run(message, chat_uuid)
 
     return {
         "chat_uuid": chat_uuid,
@@ -31,8 +30,7 @@ async def generate_chat_response(chat_uuid: str, message: str) -> dict:
 
 async def generate_chat_tokens(chat_uuid: str, message: str) -> AsyncGenerator[dict, Any]:
     """
-    Genera tokens de chat de forma simulada (streaming).
-    TODO: Implementar streaming real con el procesador MCP.
+    Genera tokens de chat usando streaming real del procesador MCP.
 
     Args:
         chat_uuid: El ID del hilo de chat
@@ -41,25 +39,21 @@ async def generate_chat_tokens(chat_uuid: str, message: str) -> AsyncGenerator[d
     Yields:
         dict: Información de cada token y el mensaje completo
     """
-    # Por ahora, simulamos el streaming dividiendo la respuesta
-    response = message + " desde el chat_response"
-    tokens = response.split()  # Simula tokens dividiendo por espacios
-    full_message = ""
+    async for chunk in run_stream(message, chat_uuid):
+        # Si el chunk indica que el streaming está completo
+        if chunk.get("is_complete", False):
+            yield {
+                "chat_uuid": chat_uuid,
+                "token": "",
+                "is_complete": True,
+                "full_message": chunk.get("full_message", ""),
+            }
 
-    for token in tokens:
-        await asyncio.sleep(0.1)  # Simula delay entre tokens
-        full_message += token + " "
-        yield {
-            "chat_uuid": chat_uuid,
-            "token": token,
-            "is_complete": False,
-            "full_message": full_message.strip(),
-        }
-
-    # Señal de finalización del stream
-    yield {
-        "chat_uuid": chat_uuid,
-        "token": "",
-        "is_complete": True,
-        "full_message": full_message.strip(),
-    }
+        else:
+            # Streaming de tokens individuales
+            yield {
+                "chat_uuid": chat_uuid,
+                "token": chunk.get("token", ""),
+                "is_complete": False,
+                "full_message": chunk.get("full_message", ""),
+            }

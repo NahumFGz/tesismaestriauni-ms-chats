@@ -34,8 +34,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from nats.aio.client import Client as NATS
 
+from app.agent.initializer import cleanup_initializer_resources
+from app.agent.llm import cleanup_llm_resources
 from app.config import get_settings
-from app.llm import shutdown_chat_processor
 from app.nats_subscriptions import register_nats_subscriptions
 
 settings = get_settings()
@@ -55,9 +56,13 @@ async def lifespan(app: FastAPI):
     print("🚪 Cerrando conexión NATS")
     await nats.drain()
 
-    # Cerrar el procesador MCP si fue inicializado
-    print("🚪 Cerrando procesador de chat MCP")
-    await shutdown_chat_processor()
+    # Cerrar recursos del agente LLM
+    print("🚪 Cerrando recursos del agente LLM")
+    await cleanup_llm_resources()
+
+    # Cerrar todos los recursos del inicializador (MCP, PostgreSQL, etc.)
+    print("🚪 Cerrando todos los recursos del inicializador")
+    await cleanup_initializer_resources()
 
 
 app = FastAPI(lifespan=lifespan)

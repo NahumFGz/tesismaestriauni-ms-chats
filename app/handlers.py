@@ -196,13 +196,13 @@ async def handle_message_generate_stream_start(nc: NATS, msg: Msg) -> None:
                 is_complete: bool = token_data["is_complete"]
 
                 if token:
-                    full_message += token + " "
+                    full_message += token
 
                 response_data = {
                     "chat_uuid": chat_uuid,
                     "token": token,
                     "is_complete": is_complete,
-                    "full_message": full_message.strip(),
+                    "full_message": full_message,
                 }
 
                 # Solo incluimos el título en el último mensaje cuando is_complete=True
@@ -215,7 +215,7 @@ async def handle_message_generate_stream_start(nc: NATS, msg: Msg) -> None:
                 )
 
                 if is_complete:
-                    await _save_bot_message(session, chat, full_message.strip())
+                    await _save_bot_message(session, chat, full_message)
             break
 
     except Exception as exc:  # pragma: no cover
