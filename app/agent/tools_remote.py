@@ -10,9 +10,8 @@ Responsabilidades:
 
 from typing import Optional
 
-from langchain_mcp_adapters.client import MultiServerMCPClient
-
 from app.config import get_settings
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 settings = get_settings()
 
@@ -22,9 +21,9 @@ settings = get_settings()
 
 # Configuración de Servidores MCP
 SERVERS = {
-    "attendance": {"url": settings.MCP_ATTENDANCE_URL, "transport": "sse"},
-    "budget": {"url": settings.MCP_BUDGET_URL, "transport": "sse"},
-    "voting": {"url": settings.MCP_VOTING_URL, "transport": "sse"},
+    "attendance": {"url": settings.MCP_ATTENDANCE_URL, "transport": "streamable_http"},
+    "budget": {"url": settings.MCP_BUDGET_URL, "transport": "streamable_http"},
+    "voting": {"url": settings.MCP_VOTING_URL, "transport": "streamable_http"},
 }
 
 
@@ -52,12 +51,11 @@ class MCPToolsManager:
         print("🔄 Iniciando conexión a servidores MCP...")
 
         try:
-            # Inicializar conexión MCP
+            # Inicializar conexión MCP con la nueva API
             self._client = MultiServerMCPClient(SERVERS)
-            await self._client.__aenter__()  # Inicializar la conexión
 
-            # Obtener herramientas MCP (sin await, ya que get_tools() no es awaitable)
-            self._tools = self._client.get_tools()
+            # Obtener herramientas MCP (ahora es awaitable según la nueva API)
+            self._tools = await self._client.get_tools()
 
             self._is_initialized = True
 
@@ -77,13 +75,14 @@ class MCPToolsManager:
         """Cierra las conexiones MCP."""
         if self._client is not None:
             try:
-                await self._client.__aexit__(None, None, None)  # Cerrar la conexión correctamente
+                # Ya no necesitamos cerrar manualmente las conexiones
+                # La nueva API maneja esto automáticamente
                 self._client = None
                 self._tools = []
                 self._is_initialized = False
-                print("✅ Conexiones MCP cerradas")
+                print("✅ Conexiones MCP liberadas")
             except Exception as e:
-                print(f"⚠️  Error al cerrar conexiones: {e}")
+                print(f"⚠️  Error al liberar conexiones: {e}")
 
     def get_tools(self) -> list:
         """Obtiene la lista de herramientas disponibles."""

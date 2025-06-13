@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_tavily import TavilySearch
 
 
 def create_tavily_tool():
@@ -9,10 +9,10 @@ def create_tavily_tool():
     Crea y configura la herramienta de búsqueda web de Tavily.
 
     Returns:
-        TavilySearchResults: Herramienta configurada para búsquedas web
+        TavilySearch: Herramienta configurada para búsquedas web
     """
     # La API key debe estar configurada en la variable de entorno TAVILY_API_KEY
-    tavily_tool = TavilySearchResults(max_results=2)
+    tavily_tool = TavilySearch(max_results=2)
 
     return tavily_tool
 
