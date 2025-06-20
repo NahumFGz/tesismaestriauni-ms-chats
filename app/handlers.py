@@ -35,7 +35,7 @@ Notas
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from nats.aio.client import Client as NATS
 from nats.aio.msg import Msg
@@ -73,6 +73,7 @@ async def _save_user_message(session, chat_uuid: str, content: str) -> None:
             content=content,
             chat_uuid=chat_uuid,
             sender_type=models.SenderType.USER,
+            timestamp=datetime.now(timezone.utc),
         )
     )
     await session.commit()
@@ -85,9 +86,10 @@ async def _save_bot_message(session, chat: models.Chat, content: str) -> None:
             content=content,
             chat_uuid=chat.chat_uuid,
             sender_type=models.SenderType.SYSTEM,
+            timestamp=datetime.now(timezone.utc),
         )
     )
-    chat.updated_at = datetime.utcnow()
+    chat.updated_at = datetime.now(timezone.utc)
     await session.commit()
 
 
