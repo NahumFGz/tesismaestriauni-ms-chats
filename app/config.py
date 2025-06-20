@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     MCP_VOTING_URL: str = Field(..., env="MCP_VOTING_URL")
 
     OPENAI_API_KEY: str = Field(..., env="OPENAI_API_KEY")
+    ANTHROPIC_API_KEY: str = Field(..., env="ANTHROPIC_API_KEY")
     TAVILY_API_KEY: str = Field(..., env="TAVILY_API_KEY")
 
     @property

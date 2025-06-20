@@ -59,7 +59,9 @@ async def _get_or_create_chat(session, chat_uuid: str, user_id: int) -> models.C
         .first()
     )
     if chat is None:
-        chat = models.Chat(chat_uuid=chat_uuid, user_id=user_id)
+        chat = models.Chat(
+            chat_uuid=chat_uuid, user_id=user_id, created_at=datetime.now(timezone.utc)
+        )
         session.add(chat)
         await session.commit()
         await session.refresh(chat)
