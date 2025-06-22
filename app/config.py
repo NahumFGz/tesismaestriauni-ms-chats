@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     NATS_SERVERS: str = Field(..., env="NATS_SERVERS")
 
     MCP_ATTENDANCE_URL: str = Field(..., env="MCP_ATTENDANCE_URL")
-    MCP_BUDGET_URL: str = Field(..., env="MCP_BUDGET_URL")
+    MCP_PROCUREMENT_URL: str = Field(..., env="MCP_PROCUREMENT_URL")
     MCP_VOTING_URL: str = Field(..., env="MCP_VOTING_URL")
 
     OPENAI_API_KEY: str = Field(..., env="OPENAI_API_KEY")

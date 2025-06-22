@@ -10,8 +10,9 @@ Responsabilidades:
 
 from typing import Optional
 
-from app.config import get_settings
 from langchain_mcp_adapters.client import MultiServerMCPClient
+
+from app.config import get_settings
 
 settings = get_settings()
 
@@ -22,7 +23,7 @@ settings = get_settings()
 # Configuración de Servidores MCP
 SERVERS = {
     "attendance": {"url": settings.MCP_ATTENDANCE_URL, "transport": "streamable_http"},
-    "budget": {"url": settings.MCP_BUDGET_URL, "transport": "streamable_http"},
+    "procurement": {"url": settings.MCP_PROCUREMENT_URL, "transport": "streamable_http"},
     "voting": {"url": settings.MCP_VOTING_URL, "transport": "streamable_http"},
 }
 

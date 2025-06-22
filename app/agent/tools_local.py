@@ -3,6 +3,10 @@ from typing import List
 
 from langchain_tavily import TavilySearch
 
+from app.config import get_settings
+
+settings = get_settings()
+
 
 def create_tavily_tool():
     """
@@ -12,7 +16,7 @@ def create_tavily_tool():
         TavilySearch: Herramienta configurada para búsquedas web
     """
     # La API key debe estar configurada en la variable de entorno TAVILY_API_KEY
-    tavily_tool = TavilySearch(max_results=2)
+    tavily_tool = TavilySearch(max_results=2, tavily_api_key=settings.TAVILY_API_KEY)
 
     return tavily_tool
 
