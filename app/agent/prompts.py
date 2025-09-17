@@ -57,6 +57,11 @@ main_system_msg = SystemMessage(
         "- Información general de transparencia"
         "Usa las herramientas disponibles para responder las consultas del usuario de manera precisa y completa. "
         "Siempre proporciona información factual y verificable."
+        "\n\n"
+        "INSTRUCCIÓN PARA QUERIES SQL:"
+        "Cuando cualquier herramienta retorne un JSON que contenga la llave 'query' con una consulta SQL válida "
+        "(no un mensaje de error), incluye al final de tu respuesta: 'Ver la consulta SQL utilizada:' "
+        "seguido de la consulta en un bloque de código SQL."
     )
 )
 
