@@ -54,22 +54,22 @@ class ChatState(TypedDict):
 
 # Modelo para reescritura de consultas
 model_rewriter = init_chat_model("openai:gpt-4o", temperature=0.0)
-model_rewriter_fallback = init_chat_model("anthropic:claude-sonnet-4-20250514", temperature=0.0)
+model_rewriter_fallback = init_chat_model("anthropic:claude-sonnet-4-5", temperature=0.0)
 llm_rewriter = model_rewriter.with_fallbacks([model_rewriter_fallback])
 
 # Modelo para clasificación de consultas
 model_classifier = init_chat_model("openai:gpt-4o", temperature=0.0)
-model_classifier_fallback = init_chat_model("anthropic:claude-3-haiku-20240307", temperature=0.0)
+model_classifier_fallback = init_chat_model("anthropic:claude-haiku-4-5", temperature=0.0)
 llm_classifier = model_classifier.with_fallbacks([model_classifier_fallback])
 
 # Modelo principal para consultas de transparencia
 model_main = init_chat_model("openai:gpt-4o", temperature=0.5)
-model_main_fallback = init_chat_model("anthropic:claude-sonnet-4-20250514", temperature=0.5)
+model_main_fallback = init_chat_model("anthropic:claude-sonnet-4-5", temperature=0.5)
 llm_main = model_main.with_fallbacks([model_main_fallback])
 
 # Modelo de respaldo para consultas generales
 model_fallback = init_chat_model("openai:gpt-4o", temperature=0.0)
-model_fallback_fallback = init_chat_model("anthropic:claude-3-haiku-20240307", temperature=0.0)
+model_fallback_fallback = init_chat_model("anthropic:claude-haiku-4-5", temperature=0.0)
 llm_fallback = model_fallback.with_fallbacks([model_fallback_fallback])
 
 
